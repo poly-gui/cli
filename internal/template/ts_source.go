@@ -33,6 +33,7 @@ const PackageJSON = `{
   },
   "dependencies": {
     "poly": "git+https://github.com/poly-gui/ts-poly.git#main",
+    "poly-widgets": "git+https://github.com/poly-gui/ts-poly-widgets.git#main",
     "nanopack": "git+https://github.com/poly-gui/ts-nanopack.git#main"
   },
   "devDependencies": {
@@ -43,6 +44,7 @@ const PackageJSON = `{
   },
   "trustedDependencies": [
     "poly",
+    "poly-widgets",
     "nanopack"
   ]
 }`

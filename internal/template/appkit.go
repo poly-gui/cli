@@ -5,8 +5,12 @@ options:
   bundleIdPrefix: {{.PackageName}}
 packages:
   PolyNative:
+    {{if .DebugMode}}
+    path: /Users/kennethng/Projects/poly/PolyNativeSwift
+    {{else}}
     url: https://github.com/poly-gui/swift-poly-native
     branch: main
+    {{end}}
 settings:
   GENERATE_INFOPLIST_FILE: YES
 targets:

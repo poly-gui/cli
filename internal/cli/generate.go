@@ -17,12 +17,14 @@ func Generate() error {
 	var outputPath string
 	var projectName string
 	var packageName string
+	var debugMode bool
 
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
+	flag.BoolVar(&debugMode, "debug", false, "Enables debug mode.")
 	flag.StringVar(&outputPath, "output", cwd, "Where the project should be created in. Defaults to the current working directory.")
 	flag.StringVar(&projectName, "name", defaultProjectName, "The name for the application. Default is "+defaultProjectName+".")
 	flag.StringVar(&packageName, "package", defaultPackageName, "The package name/bundle ID for the application. Default is "+defaultPackageName+".")
@@ -35,6 +37,7 @@ func Generate() error {
 	}
 
 	projectDescription := poly.ProjectDescription{
+		DebugMode:        debugMode,
 		FullPath:         o,
 		AppName:          projectName,
 		OrganizationName: "",
