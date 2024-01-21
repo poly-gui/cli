@@ -5,19 +5,19 @@ options:
   bundleIdPrefix: {{.PackageName}}
 packages:
   PolyNative:
-    {{if .DebugMode}}
+    {{- if .DebugMode}}
     path: /Users/kennethng/Projects/poly/PolyNativeSwift
-    {{else}}
+    {{- else}}
     url: https://github.com/poly-gui/swift-poly-native
     branch: main
-    {{end}}
+    {{- end}}
 settings:
   GENERATE_INFOPLIST_FILE: YES
 targets:
   {{.AppName}}:
     type: application
     platform: macOS
-    deploymentTarget: "10.13"
+    deploymentTarget: "10.15"
     sources: [{{.AppName}}]
     dependencies:
       - package: PolyNative
