@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"poly-cli/internal/poly"
 	"poly-cli/internal/template"
+	"runtime"
 	gotemplate "text/template"
 )
 
@@ -60,11 +61,6 @@ func Generate() error {
 func generateMacOSSource(project poly.ProjectDescription) error {
 	log.Println("Generating macOS project...")
 
-	xcodegen, err := exec.LookPath("xcodegen")
-	if err != nil {
-		return err
-	}
-
 	o, err := filepath.Abs(filepath.Join(project.FullPath, defaultMacOSFolderName))
 	if err != nil {
 		return err
@@ -112,12 +108,18 @@ func generateMacOSSource(project poly.ProjectDescription) error {
 	}
 	_ = f.Close()
 
-	cmd := exec.Command(xcodegen, "generate")
-	cmd.Dir = o
+	if runtime.GOOS == "darwin" {
+		xcodegen, err := exec.LookPath("xcodegen")
+		if err != nil {
+			return err
+		}
+		cmd := exec.Command(xcodegen, "generate")
+		cmd.Dir = o
 
-	err = cmd.Run()
-	if err != nil {
-		return err
+		err = cmd.Run()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
