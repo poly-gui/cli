@@ -1,6 +1,12 @@
 package template
 
-const TSConfigJSON = `{
+import "path/filepath"
+
+var TSSourceFiles = []templateFile{TSConfigJSON, PackageJSON, TSGitIgnore, TSMainFile}
+
+var TSConfigJSON = templateFile{
+	FilePathRel: "tsconfig.json",
+	Template: `{
   "compilerOptions": {
     "lib": ["ESNext"],
     "module": "esnext",
@@ -18,18 +24,24 @@ const TSConfigJSON = `{
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "types": [
-      "bun-types" // add Bun global
+      "node"
     ]
   }
 }
-`
+`,
+	TemplateName: "TSConfigJSON",
+}
 
-const PackageJSON = `{
+var PackageJSON = templateFile{
+	FilePathRel: "package.json",
+	Template: `{
   "name": "{{ToKebab .AppName}}",
   "module": "main.js",
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/main.ts --minify --compile --outfile ../build/bundle"
+    "build": "run-s build:js build:bin",
+    "build:bin": "pkg --targets node18-linux --output ../build/bundle build/out.js",
+    "build:js": "esbuild src/main.ts --bundle --minify --platform=node --format=esm --outfile=build/out.js"
   },
   "dependencies": {
     "poly": "git+https://github.com/poly-gui/ts-poly.git#main",
@@ -37,19 +49,19 @@ const PackageJSON = `{
     "nanopack": "git+https://github.com/poly-gui/ts-nanopack.git#main"
   },
   "devDependencies": {
-    "bun-types": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "trustedDependencies": [
-    "poly",
-    "poly-widgets",
-    "nanopack"
-  ]
-}`
+    "typescript": "^5.0.0",
+    "@types/node": "^20.11.16",
+    "esbuild": "^0.20.0",
+    "npm-run-all": "^4.1.5",
+    "pkg": "^5.8.1"
+  }
+}`,
+	TemplateName: "PackageJSON",
+}
 
-const TSGitIgnore = `# Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
+var TSGitIgnore = templateFile{
+	FilePathRel: ".gitignore",
+	Template: `# Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 
 # Logs
 
@@ -224,37 +236,50 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
-`
+`,
+	TemplateName: "TSGitIgnore",
+}
 
-const TSMainFile = `import { createApplication, runApplication } from "poly/application"
-import { StdioMessageChannel } from "poly/bridge"
-import { createWindow } from "poly/window"
+var TSMainFile = templateFile{
+	FilePathRel: filepath.Join("src", "main.ts"),
+	Template: `import { createApplication, runApplication } from "poly/application";
+import { StdioMessageChannel } from "poly/bridge";
+import { createWindow } from "poly/window";
+import { initializeWidgets } from "poly-widgets";
 
-const context = createApplication({
-	messageChannel: new StdioMessageChannel({
-		async *stdin() {
-			for await (const chunk of Bun.stdin.stream()) {
-				yield Uint8Array.from(chunk)
-			}
-		},
-		async stdout(data: Uint8Array) {
-			await Bun.write(Bun.stdout, data)
-		},
-	}),
-})
+async function main() {
+  const context = createApplication({
+    messageChannel: new StdioMessageChannel({
+      async *stdin() {
+        for await (const chunk of process.stdin) {
+          yield chunk;
+        }
+      },
+      async stdout(data: Uint8Array) {
+        process.stdout.write(data);
+      },
+    }),
+  });
 
-const instance = runApplication(context)
+  initializeWidgets(context);
 
-createWindow(
-	{
-		title: "{{.AppName}}",
-		description: "A Poly application written in TypeScript.",
-		width: 600,
-		height: 400,
-		tag: "main",
-	},
-	context,
-)
+  const instance = runApplication(context);
 
-await instance
-`
+  createWindow(
+    {
+      title: "{{.AppName}}",
+      description: "A Poly application written in TypeScript.",
+      width: 600,
+      height: 400,
+      tag: "main",
+    },
+    context
+  );
+
+  await instance;
+}
+
+main();
+`,
+	TemplateName: "TSMainFile",
+}

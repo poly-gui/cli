@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"log"
 	"os"
@@ -9,7 +10,7 @@ import (
 	"poly-cli/internal/poly"
 	"poly-cli/internal/template"
 	"runtime"
-	gotemplate "text/template"
+	"sync"
 )
 
 func Generate() error {
@@ -45,17 +46,46 @@ func Generate() error {
 		PackageName:      packageName,
 	}
 
-	err = generateMacOSSource(projectDescription)
+	err = os.MkdirAll(o, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	err = generatePortableLayerSource(projectDescription)
+	git, err := exec.LookPath("git")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(git, "init")
+	cmd.Dir = o
+	err = cmd.Run()
 	if err != nil {
 		return err
 	}
 
-	return nil
+	errs := make([]error, 3)
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		errs[0] = generateMacOSSource(projectDescription)
+		wg.Done()
+	}()
+
+	wg.Add(1)
+	go func() {
+		errs[1] = generateGTKSource(projectDescription)
+		wg.Done()
+	}()
+
+	wg.Add(1)
+	go func() {
+		errs[2] = generatePortableLayerSource(projectDescription)
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	return errors.Join(errs...)
 }
 
 func generateMacOSSource(project poly.ProjectDescription) error {
@@ -66,47 +96,10 @@ func generateMacOSSource(project poly.ProjectDescription) error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Join(o, project.AppName), os.ModePerm)
+	err = template.GenerateTemplates(template.AppKitSourceFiles, o, project)
 	if err != nil {
 		return err
 	}
-
-	tmpl, err := gotemplate.New("XcodeGenSpec").Parse(template.XcodeGenSpec)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Create(filepath.Join(o, xcodeProjectSpecName))
-	if err != nil {
-		return err
-	}
-
-	err = tmpl.Execute(f, project)
-	if err != nil {
-		return err
-	}
-
-	_ = f.Close()
-
-	f, err = os.Create(filepath.Join(o, project.AppName, "AppDelegate.swift"))
-	if err != nil {
-		return err
-	}
-	_, err = f.Write([]byte(template.AppDelegate))
-	if err != nil {
-		return err
-	}
-	_ = f.Close()
-
-	f, err = os.Create(filepath.Join(o, project.AppName, "main.swift"))
-	if err != nil {
-		return err
-	}
-	_, err = f.Write([]byte(template.SwiftMainFile))
-	if err != nil {
-		return err
-	}
-	_ = f.Close()
 
 	if runtime.GOOS == "darwin" {
 		xcodegen, err := exec.LookPath("xcodegen")
@@ -125,8 +118,49 @@ func generateMacOSSource(project poly.ProjectDescription) error {
 	return nil
 }
 
+func generateGTKSource(project poly.ProjectDescription) error {
+	log.Println("Generating GTK project...")
+
+	git, err := exec.LookPath("git")
+	if err != nil {
+		return err
+	}
+
+	o, err := filepath.Abs(filepath.Join(project.FullPath, defaultGtkFolderName))
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(filepath.Join(o), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	libp := filepath.Join(project.FullPath, "gtk", "lib")
+
+	err = os.MkdirAll(libp, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(git, "submodule", "add", gtkpolyGitURL)
+	cmd.Dir = libp
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	cmd = exec.Command(git, "submodule", "update", "--init", "--recursive")
+	cmd.Dir = project.FullPath
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	return template.GenerateTemplates(template.GTKSourceFiles, o, project)
+}
+
 func generatePortableLayerSource(project poly.ProjectDescription) error {
-	bun, err := exec.LookPath("bun")
+	pnpm, err := exec.LookPath("pnpm")
 	if err != nil {
 		return err
 	}
@@ -136,61 +170,12 @@ func generatePortableLayerSource(project poly.ProjectDescription) error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Join(o, "src"), os.ModePerm)
+	err = template.GenerateTemplates(template.TSSourceFiles, o, project)
 	if err != nil {
 		return err
 	}
 
-	tmpl, err := gotemplate.New("PackageJSON").Funcs(template.FuncMap).Parse(template.PackageJSON)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Create(filepath.Join(o, "package.json"))
-	if err != nil {
-		return err
-	}
-	err = tmpl.Execute(f, project)
-	if err != nil {
-		return err
-	}
-	_ = f.Close()
-
-	f, err = os.Create(filepath.Join(o, "tsconfig.json"))
-	if err != nil {
-		return err
-	}
-	_, err = f.Write([]byte(template.TSConfigJSON))
-	if err != nil {
-		return err
-	}
-	_ = f.Close()
-
-	f, err = os.Create(filepath.Join(o, ".gitignore"))
-	if err != nil {
-		return err
-	}
-	_, err = f.Write([]byte(template.TSGitIgnore))
-	if err != nil {
-		return err
-	}
-	_ = f.Close()
-
-	f, err = os.Create(filepath.Join(o, "src", "main.ts"))
-	if err != nil {
-		return err
-	}
-	tmpl, err = gotemplate.New("TSMainFile").Parse(template.TSMainFile)
-	if err != nil {
-		return err
-	}
-	err = tmpl.Execute(f, project)
-	if err != nil {
-		return err
-	}
-	_ = f.Close()
-
-	cmd := exec.Command(bun, "install")
+	cmd := exec.Command(pnpm, "install")
 	cmd.Dir = o
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

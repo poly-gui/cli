@@ -1,6 +1,12 @@
 package template
 
-const XcodeGenSpec = `name: {{.AppName}}
+import "path/filepath"
+
+var AppKitSourceFiles = []templateFile{XcodeGenSpec, SwiftMainFile, AppDelegate}
+
+var XcodeGenSpec = templateFile{
+	FilePathRel: "project.yml",
+	Template: `name: {{.AppName}}
 options:
   bundleIdPrefix: {{.PackageName}}
 packages:
@@ -25,18 +31,28 @@ targets:
       - script: |
           mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
           cp "${SRCROOT}/../build/bundle" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/bundle"
-`
+`,
+	TemplateName: "XcodeGenSpec",
+}
 
-const SwiftMainFile = `import AppKit
+var SwiftMainFile = templateFile{
+	FilePathRel: filepath.Join("_APP_NAME_", "main.swift"),
+	Template: `import AppKit
 
 let application = NSApplication.shared
 let delegate = AppDelegate()
 application.delegate = delegate
 
 _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
-`
+`,
+	TemplateName: "SwiftMainFile",
+}
 
-const AppDelegate = `import PolyNative
+var AppDelegate = templateFile{
+	FilePathRel: filepath.Join("_APP_NAME_", "AppDelegate.swift"),
+	Template: `import PolyNative
 
 class AppDelegate: PolyApplicationDelegate {}
-`
+`,
+	TemplateName: "SwiftAppDelegate",
+}

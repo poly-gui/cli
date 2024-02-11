@@ -7,9 +7,9 @@ const (
 
 	defaultMacOSFolderName = "macOS"
 
+	defaultGtkFolderName = "gtk"
+
 	defaultAppSrcFolderName = "app"
 
-	xcodeProjectSpecName = "project.yml"
-
-	jsSourceEntry = "main.js"
+	gtkpolyGitURL = "https://github.com/poly-gui/gtk-poly"
 )
