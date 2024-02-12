@@ -2,6 +2,8 @@ package template
 
 import "path/filepath"
 
+// TSSourceFiles is a list of templates of files that will be in the "app" folder of a Poly project
+// if TypeScript is used as the language of choice for the portable layer.
 var TSSourceFiles = []templateFile{TSConfigJSON, PackageJSON, TSGitIgnore, TSMainFile}
 
 var TSConfigJSON = templateFile{

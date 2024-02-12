@@ -2,6 +2,7 @@ package template
 
 import "path/filepath"
 
+// AppKitSourceFiles is a list of templates of files that will be in the "macOS" directory in a Poly project.
 var AppKitSourceFiles = []templateFile{XcodeGenSpec, SwiftMainFile, AppDelegate}
 
 var XcodeGenSpec = templateFile{

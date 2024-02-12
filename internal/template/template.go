@@ -11,6 +11,7 @@ import (
 	gotemplate "text/template"
 )
 
+// templateFile describes the template for a file that is generated during the creation of a new Poly project.
 type templateFile struct {
 	// FilePathRel is the path to the output file relative to the native source code directory such as <project>/macOS or <project>/gtk.
 	// Use _APP_NAME_ as a placeholder for the app name if needed.
@@ -24,6 +25,7 @@ type templateFile struct {
 	TemplateName string
 }
 
+// funcMap defines functions that are usable in templateFile.template.
 var funcMap = gotemplate.FuncMap{
 	"ToKebab": strcase.ToKebab,
 }

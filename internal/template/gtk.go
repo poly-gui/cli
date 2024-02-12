@@ -2,6 +2,7 @@ package template
 
 import "path/filepath"
 
+// GTKSourceFiles is a list of templates of files that will be in the "gtk" directory in a Poly project.
 var GTKSourceFiles = []templateFile{GTKCMakeLists, GTKCxxMainFile, GTKLaunchScript, GTKRPMSpec}
 
 var GTKCMakeLists = templateFile{

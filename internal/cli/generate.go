@@ -13,6 +13,7 @@ import (
 	"sync"
 )
 
+// Generate is run when `poly generate` is invoked.
 func Generate() error {
 	os.Args = append(os.Args[:1], os.Args[2:]...)
 
