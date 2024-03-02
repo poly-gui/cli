@@ -263,8 +263,6 @@ async function main() {
     }),
   });
 
-  initializeWidgets(context);
-
   const instance = runApplication(context);
 
   createWindow(
