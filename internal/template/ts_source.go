@@ -42,13 +42,12 @@ var PackageJSON = templateFile{
   "type": "module",
   "scripts": {
     "build": "run-s build:js build:bin",
-    "build:bin": "pkg --targets node18-linux --output ../build/bundle build/out.js",
-    "build:js": "esbuild src/main.ts --bundle --minify --platform=node --format=esm --outfile=build/out.js"
+    "build:bin": "pkg --targets node18 --output ../build/bundle build/out.js",
+    "build:js": "esbuild src/main.ts --bundle --minify --platform=node --format=cjs --outfile=build/out.js"
   },
   "dependencies": {
     "poly": "git+https://github.com/poly-gui/ts-poly.git#main",
-    "poly-widgets": "git+https://github.com/poly-gui/ts-poly-widgets.git#main",
-    "nanopack": "git+https://github.com/poly-gui/ts-nanopack.git#main"
+    "poly-widgets": "git+https://github.com/poly-gui/ts-poly-widgets.git#main"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
@@ -244,28 +243,16 @@ dist
 
 var TSMainFile = templateFile{
 	FilePathRel: filepath.Join("src", "main.ts"),
-	Template: `import { createApplication, runApplication } from "poly/application";
-import { StdioMessageChannel } from "poly/bridge";
-import { createWindow } from "poly/window";
-import { initializeWidgets } from "poly-widgets";
+	Template: `import { createApplication, runApplication, createWindow, StdioChannel } from "poly";
 
 async function main() {
   const context = createApplication({
-    messageChannel: new StdioMessageChannel({
-      async *stdin() {
-        for await (const chunk of process.stdin) {
-          yield chunk;
-        }
-      },
-      async stdout(data: Uint8Array) {
-        process.stdout.write(data);
-      },
-    }),
+    messageChannel: new StdioChannel(),
   });
 
   const instance = runApplication(context);
 
-  createWindow(
+  await createWindow(
     {
       title: "{{.AppName}}",
       description: "A Poly application written in TypeScript.",
