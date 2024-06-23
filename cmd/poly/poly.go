@@ -8,8 +8,8 @@ import (
 
 const (
 	cmdGenerate = "generate"
-
-	cmdOpen = "open"
+	cmdOpen     = "open"
+	cmdRun      = "run"
 )
 
 func main() {
@@ -22,6 +22,7 @@ func main() {
 		err = cli.Generate()
 	case cmdOpen:
 		err = cli.Open(args[2:]...)
+	case cmdRun:
 
 	default:
 		log.Fatalln("Unknown command: " + cmd)

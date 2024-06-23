@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -17,37 +18,12 @@ import (
 func Generate() error {
 	os.Args = append(os.Args[:1], os.Args[2:]...)
 
-	var outputPath string
-	var projectName string
-	var packageName string
-	var debugMode bool
-
-	cwd, err := os.Getwd()
+	project, err := parseFromArgs()
 	if err != nil {
 		return err
 	}
 
-	flag.BoolVar(&debugMode, "debug", false, "Enables debug mode.")
-	flag.StringVar(&outputPath, "output", cwd, "Where the project should be created in. Defaults to the current working directory.")
-	flag.StringVar(&projectName, "name", defaultProjectName, "The name for the application. Default is "+defaultProjectName+".")
-	flag.StringVar(&packageName, "package", defaultPackageName, "The package name/bundle ID for the application. Default is "+defaultPackageName+".")
-
-	flag.Parse()
-
-	o, err := filepath.Abs(filepath.Join(outputPath, projectName))
-	if err != nil {
-		return err
-	}
-
-	projectDescription := poly.ProjectDescription{
-		DebugMode:        debugMode,
-		FullPath:         o,
-		AppName:          projectName,
-		OrganizationName: "",
-		PackageName:      packageName,
-	}
-
-	err = os.MkdirAll(o, os.ModePerm)
+	err = os.MkdirAll(project.FullPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -57,7 +33,7 @@ func Generate() error {
 		return err
 	}
 	cmd := exec.Command(git, "init")
-	cmd.Dir = o
+	cmd.Dir = project.FullPath
 	err = cmd.Run()
 	if err != nil {
 		return err
@@ -68,23 +44,19 @@ func Generate() error {
 
 	wg.Add(1)
 	go func() {
-		errs[0] = generateMacOSSource(projectDescription)
+		errs[0] = generateMacOSSource(*project)
 		wg.Done()
 	}()
 
 	wg.Add(1)
 	go func() {
-		errs[1] = generateGTKSource(projectDescription)
-		wg.Done()
-	}()
-
-	wg.Add(1)
-	go func() {
-		errs[2] = generatePortableLayerSource(projectDescription)
+		errs[1] = generateGTKSource(*project)
 		wg.Done()
 	}()
 
 	wg.Wait()
+
+	err = generatePortableLayerSource(*project)
 
 	return errors.Join(errs...)
 }
@@ -160,30 +132,52 @@ func generateGTKSource(project poly.ProjectDescription) error {
 	return template.GenerateTemplates(template.GTKSourceFiles, o, project)
 }
 
+func parseFromArgs() (*poly.ProjectDescription, error) {
+	var outputPath string
+	var projectName string
+	var packageName string
+	var debugWorkspacePath string
+	var language string
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	flag.StringVar(&debugWorkspacePath, "debug-workspace", "", "")
+	flag.StringVar(&outputPath, "output", cwd, "Where the project should be created in. Defaults to the current working directory.")
+	flag.StringVar(&projectName, "name", defaultProjectName, "The name for the application. Default is "+defaultProjectName+".")
+	flag.StringVar(&packageName, "package", defaultPackageName, "The package name/bundle ID for the application. Default is "+defaultPackageName+".")
+	flag.StringVar(&language, "language", defaultLanguage, "The programming language the source code of the portable layer should be using.")
+
+	flag.Parse()
+
+	if !poly.IsLanguageSupported(language) {
+		return nil, errors.New(fmt.Sprintf("Unsupported language: %v", language))
+	}
+
+	o, err := filepath.Abs(filepath.Join(outputPath, projectName))
+	if err != nil {
+		return nil, err
+	}
+
+	projectDescription := poly.ProjectDescription{
+		DebugWorkspacePath: debugWorkspacePath,
+		FullPath:           o,
+		AppName:            projectName,
+		OrganizationName:   "",
+		PackageName:        packageName,
+		Language:           poly.SupportedLanguage(language),
+	}
+
+	return &projectDescription, nil
+}
+
 func generatePortableLayerSource(project poly.ProjectDescription) error {
-	pnpm, err := exec.LookPath("pnpm")
-	if err != nil {
-		return err
+	switch project.Language {
+	case poly.SupportedLanguageTypeScript:
+		return generateTypeScriptSource(project)
+	default:
+		return errors.New(fmt.Sprintf("Unsupported language %v\n", project.Language))
 	}
-
-	o, err := filepath.Abs(filepath.Join(project.FullPath, defaultAppSrcFolderName))
-	if err != nil {
-		return err
-	}
-
-	err = template.GenerateTemplates(template.TSSourceFiles, o, project)
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.Command(pnpm, "install")
-	cmd.Dir = o
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

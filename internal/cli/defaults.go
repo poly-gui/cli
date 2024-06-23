@@ -3,6 +3,8 @@ package cli
 const (
 	defaultProjectName = "PolyApp"
 
+	defaultLanguage = "ts"
+
 	defaultPackageName = "org.polygui"
 
 	defaultMacOSFolderName = "macOS"

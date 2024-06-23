@@ -46,8 +46,12 @@ var PackageJSON = templateFile{
     "build:js": "esbuild src/main.ts --bundle --minify --platform=node --format=cjs --outfile=build/out.js"
   },
   "dependencies": {
+	{{- if .DebugWorkspacePath}}
+	"poly": "file:{{.DebugWorkspacePath}}/ts-poly"
+	{{- else}}
     "poly": "git+https://github.com/poly-gui/ts-poly.git#main",
     "poly-widgets": "git+https://github.com/poly-gui/ts-poly-widgets.git#main"
+	{{- end}}
   },
   "devDependencies": {
     "typescript": "^5.0.0",

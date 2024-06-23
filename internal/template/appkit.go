@@ -12,8 +12,8 @@ options:
   bundleIdPrefix: {{.PackageName}}
 packages:
   PolyNative:
-    {{- if .DebugMode}}
-    path: /Users/kennethng/Projects/poly/PolyNativeSwift
+    {{- if .DebugWorkspacePath}}
+    path: {{.DebugWorkspacePath}}/PolyNativeSwift
     {{- else}}
     url: https://github.com/poly-gui/swift-poly-native
     branch: main
@@ -31,7 +31,11 @@ targets:
     postCompileScripts:
       - script: |
           mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+		  {{- if .DebugWorkspacePath}}
+		  ln -s "${SRCROOT}/../build/bundle" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/bundle"
+		  {{- else}}
           cp "${SRCROOT}/../build/bundle" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/bundle"
+		  {{- end}}
 `,
 	TemplateName: "XcodeGenSpec",
 }
