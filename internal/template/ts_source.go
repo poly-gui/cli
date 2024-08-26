@@ -47,7 +47,8 @@ var PackageJSON = templateFile{
   },
   "dependencies": {
 	{{- if .DebugWorkspacePath}}
-	"poly": "file:{{.DebugWorkspacePath}}/ts-poly"
+	"poly": "file:{{.DebugWorkspacePath}}/ts-poly",
+	"poly-widgets": "file:{{.DebugWorkspacePath}}/ts-poly-widgets"
 	{{- else}}
     "poly": "git+https://github.com/poly-gui/ts-poly.git#main",
     "poly-widgets": "git+https://github.com/poly-gui/ts-poly-widgets.git#main"
@@ -59,7 +60,8 @@ var PackageJSON = templateFile{
     "esbuild": "^0.20.0",
     "npm-run-all": "^4.1.5",
     "pkg": "^5.8.1"
-  }
+  },
+  "trustedDependencies": ["poly", "poly-widgets"]
 }`,
 	TemplateName: "PackageJSON",
 }
@@ -247,27 +249,23 @@ dist
 
 var TSMainFile = templateFile{
 	FilePathRel: filepath.Join("src", "main.ts"),
-	Template: `import { createApplication, runApplication, createWindow, StdioChannel } from "poly";
+	Template: `import { PolyApplication } from "poly";
 
 async function main() {
-  const context = createApplication({
-    messageChannel: new StdioChannel(),
+  const context = new PolyApplication({
+    transport: { type: "node-stdio" },
   });
 
-  const instance = runApplication(context);
+  const runLoop = context.start();
 
-  await createWindow(
-    {
-      title: "{{.AppName}}",
-      description: "A Poly application written in TypeScript.",
-      width: 600,
-      height: 400,
-      tag: "main",
-    },
-    context
-  );
+  context.windowManager.createAndShowWindow({
+    title: "{{.AppName}}",
+	width: 600,
+	height: 600,
+	tag: "main",
+  });
 
-  await instance;
+  await runLoop;
 }
 
 main();
