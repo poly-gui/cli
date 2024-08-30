@@ -47,8 +47,7 @@ var PackageJSON = templateFile{
   },
   "dependencies": {
 	{{- if .DebugWorkspacePath}}
-	"poly": "file:{{.DebugWorkspacePath}}/ts-poly",
-	"poly-widgets": "file:{{.DebugWorkspacePath}}/ts-poly-widgets"
+	"@poly-gui/core": "file:{{.DebugWorkspacePath}}/ts-poly",
 	{{- else}}
     "poly": "git+https://github.com/poly-gui/ts-poly.git#main",
     "poly-widgets": "git+https://github.com/poly-gui/ts-poly-widgets.git#main"
@@ -61,7 +60,7 @@ var PackageJSON = templateFile{
     "npm-run-all": "^4.1.5",
     "pkg": "^5.8.1"
   },
-  "trustedDependencies": ["poly", "poly-widgets"]
+  "trustedDependencies": ["@poly-gui/core"]
 }`,
 	TemplateName: "PackageJSON",
 }
@@ -249,7 +248,7 @@ dist
 
 var TSMainFile = templateFile{
 	FilePathRel: filepath.Join("src", "main.ts"),
-	Template: `import { PolyApplication } from "poly";
+	Template: `import { PolyApplication } from "@poly-gui/core";
 
 async function main() {
   const context = new PolyApplication({
