@@ -31,11 +31,12 @@ targets:
     postCompileScripts:
       - script: |
           mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
-		  {{- if .DebugWorkspacePath}}
-		  ln -s "${SRCROOT}/../build/bundle" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/bundle"
-		  {{- else}}
+          {{- if .DebugWorkspacePath}}
+          rm "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/bundle"
+          ln -s "${SRCROOT}/../build/bundle" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/bundle"
+          {{- else}}
           cp "${SRCROOT}/../build/bundle" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/bundle"
-		  {{- end}}
+          {{- end}}
 `,
 	TemplateName: "XcodeGenSpec",
 }
