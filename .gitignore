@@ -191,3 +191,6 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/goland,macos,windows,linux
 
 dist/
+
+# nix
+result
