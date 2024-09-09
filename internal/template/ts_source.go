@@ -47,10 +47,9 @@ var PackageJSON = templateFile{
   },
   "dependencies": {
 	{{- if .DebugWorkspacePath}}
-	"@poly-gui/core": "file:{{.DebugWorkspacePath}}/ts-poly",
+	"@poly-gui/core": "file:{{.DebugWorkspacePath}}/ts-poly"
 	{{- else}}
-    "poly": "git+https://github.com/poly-gui/ts-poly.git#main",
-    "poly-widgets": "git+https://github.com/poly-gui/ts-poly-widgets.git#main"
+    "@poly-gui/core": "git+https://github.com/poly-gui/ts-poly.git#main"
 	{{- end}}
   },
   "devDependencies": {
@@ -257,12 +256,11 @@ async function main() {
 
   const runLoop = context.start();
 
-  context.windowManager.createAndShowWindow({
-    title: "{{.AppName}}",
-	width: 600,
-	height: 600,
-	tag: "main",
-  });
+  const window = new Window(context, "main");
+  window.title = "{{.AppName}}";
+  window.width = 600;
+  window.height = 600;
+  window.show();
 
   await runLoop;
 }
