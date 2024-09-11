@@ -3,7 +3,7 @@ package template
 import "path/filepath"
 
 // GTKSourceFiles is a list of templates of files that will be in the "gtk" directory in a Poly project.
-var GTKSourceFiles = []templateFile{GTKCMakeLists, GTKCxxMainFile, GTKLaunchScript, GTKRPMSpec}
+var GTKSourceFiles = []templateFile{GTKCMakeLists, GTKCxxMainFile, GTKLaunchScript, GTKRPMSpec, GTKBuildScript}
 
 var GTKCMakeLists = templateFile{
 	FilePathRel:  "CMakeLists.txt",
@@ -218,4 +218,76 @@ int main()
 }
 `,
 	TemplateName: "GTKCxxMainFile",
+}
+
+var GTKBuildScript = templateFile{
+	FilePathRel: filepath.Join("build.sh"),
+	Template: `#!/bin/bash
+
+set -eu
+pushd "$(dirname $0)" > /dev/null
+
+for arg in "$@"; do declare $arg=1; done
+
+prefix="/usr/local/libexec"
+if [ -v out ]; then prefix="${out}"; fi
+
+if [ ! -v release ]; then
+	debug=1
+	app_dir="$(pwd)/build"
+else
+	app_dir="${out}/{{.AppName}}"
+fi
+
+# when building in nix, the dependencies will have already been built and installed
+# so there is no need to fetch the submodules
+if [ ! -v nix ]; then
+	echo "fetching submodule dependencies..."
+	git submodule update --init --recursive
+fi
+
+if [ ! -v nix ]; then
+	./lib/gtk-poly/build.sh
+	./lib/cxx-nanopack/build.sh
+fi
+
+link_opts="-lgtkpoly -lnanopack"
+include_opts=""
+if [ ! -v nix ]; then 
+	link_opts="-L../lib/gtk-poly/build -L../lib/cxx-nanopack/build"
+	include_opts="-I../lib/gtk-poly/include -I../lib/cxx-nanopack/include"
+fi
+
+gtkmm_flags="$(pkg-config --cflags --libs gtkmm-4.0)"
+common_opts="--std=c++20 -Wall -DAPP_DIR=\"${app_dir}\" ${gtkmm_flags}"
+if [ ! -v nix ]; then common_opts="${common_opts} ${include_opts} ${link_opts}"; fi
+debug_opts="--debug --optimize -DDEBUG ${common_opts}"
+release_opts="--optimize -DDEBUG=0 ${common_opts}"
+compiler="${CC:-g++}"
+ar="${CC:-ar}"
+src_files=(
+	src/main.cxx
+)
+
+if [ -v debug ]; then compile="$compiler ${debug_opts}"; fi
+if [ -v release ]; then compile="$compiler ${release_opts}"; fi
+
+echo "compiling using:"
+echo $compile
+
+mkdir -p build
+pushd build
+
+all_src=""
+for p in "${src_files[@]}"; do
+	all_src+=" ../${p}"
+done
+
+$compile -o {{.AppName}} ${all_src} -lgtkpoly -lnanopack
+cp ../../build/bundle $app_dir
+
+popd > /dev/null
+popd > /dev/null
+`,
+	TemplateName: "GTKBuildScript",
 }

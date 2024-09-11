@@ -115,18 +115,14 @@ func generateGTKSource(project poly.ProjectDescription) error {
 		return err
 	}
 
-	cmd := exec.Command(git, "submodule", "add", gtkpolyGitURL)
-	cmd.Dir = libp
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	cmd = exec.Command(git, "submodule", "update", "--init", "--recursive")
-	cmd.Dir = project.FullPath
-	err = cmd.Run()
-	if err != nil {
-		return err
+	submodules := []string{gtkpolyGitURL, cxxNanoPackGitURL}
+	for _, url := range submodules {
+		cmd := exec.Command(git, "submodule", "add", url)
+		cmd.Dir = libp
+		err = cmd.Run()
+		if err != nil {
+			return err
+		}
 	}
 
 	return template.GenerateTemplates(template.GTKSourceFiles, o, project)
